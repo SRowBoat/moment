@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thought Router V2</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #4ade80; /* A crisp green for the action color */
+            --text-color: #e0e0e0;
+            --text-muted: #888;
+            --border-color: #333;
+            --danger-color: #ff5555;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn-nav {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-nav:hover { background: #333; }
+
+        /* Input Area */
+        .input-container { margin-bottom: 20px; }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.1rem;
+            resize: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { outline: none; border-color: var(--primary-color); }
+        textarea::placeholder { color: #666; font-style: italic; }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .btn-icon {
+            background-color: #2a2a2a;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 20px 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.15s ease;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--primary-color);
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+
+        .btn-icon span.emoji { font-size: 2.5rem; margin-bottom: 10px; }
+        .btn-icon .app-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
+
+        /* Settings View */
+        .settings-list { display: flex; flex-direction: column; gap: 15px; }
+        .setting-item {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .setting-header { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .setting-input-group { display: flex; flex-direction: column; gap: 5px; }
+        .setting-input-group label { font-size: 0.8rem; color: var(--text-muted); }
+        .setting-input-group input {
+            background-color: #1a1a1a;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        /* Log View */
+        .thought-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        .thought-item { background-color: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .thought-meta { font-size: 0.8rem; color: var(--primary-color); display: flex; justify-content: space-between; }
+        .thought-text { font-size: 1rem; line-height: 1.4; white-space: pre-wrap; margin-top: 5px;}
+        .thought-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .thought-actions button { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .thought-actions button:hover { background: #444; }
+        .thought-actions .btn-delete { color: var(--danger-color); border-color: rgba(255,85,85,0.3); }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <h1 id="view-title">🧠 Thought Router</h1>
+        <div class="header-actions">
+            <button id="btn-settings" class="btn-nav" onclick="renderSettings()">⚙️ Apps</button>
+            <button id="btn-log" class="btn-nav" onclick="renderLogView()">📖 Log</button>
+        </div>
+    </header>
+
+    <div id="content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // --- Default Configuration ---
+    const defaultCategories = {
+        "Music": { icon: "🎵", isDir: false, app: "GarageBand" },
+        "Math": { icon: "➗", isDir: true, app: "", sub: {
+            "Algebra": { icon: "🧮", app: "Wolfram Alpha" },
+            "Calculator": { icon: "🔢", app: "calc.exe" },
+            "Calculus": { icon: "📈", app: "Jupyter" }
+        }},
+        "Physics": { icon: "⚛️", isDir: false, app: "Obsidian Vault" },
+        "Biology": { icon: "🧬", isDir: false, app: "Notion" }
+    };
+
+    // --- State & Storage Management ---
+    const STORAGE_KEY_THOUGHTS = 'router_v2_thoughts';
+    const STORAGE_KEY_CONFIG = 'router_v2_config';
+
+    let categories = JSON.parse(localStorage.getItem(STORAGE_KEY_CONFIG)) || defaultCategories;
+    let currentDir = null; // null means root directory
+    let draftText = ""; // Preserves text when navigating folders
+
+    function saveConfig() {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(categories));
+    }
+
+    function getThoughts() {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_THOUGHTS)) || [];
+    }
+    
+    function saveThought(text, categoryTag, appLaunched) {
+        const thoughts = getThoughts();
+        thoughts.unshift({
+            id: Date.now().toString(),
+            timestamp: new Date().toISOString(),
+            tag: categoryTag,
+            app: appLaunched,
+            text: text
+        });
+        localStorage.setItem(STORAGE_KEY_THOUGHTS, JSON.stringify(thoughts));
+    }
+
+    function deleteThought(id) {
+        let thoughts = getThoughts().filter(t => t.id !== id);
+        localStorage.setItem(STORAGE_KEY_THOUGHTS, JSON.stringify(thoughts));
+        renderLogView();
+    }
+
+    // --- UI Rendering ---
+    const contentDiv = document.getElementById('content');
+    const titleH1 = document.getElementById('view-title');
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.opacity = 1;
+        setTimeout(() => toast.style.opacity = 0, 3000);
+    }
+
+    function renderInputAndGrid(dirKey = null) {
+        // Save current text before re-rendering if navigating sub-menus
+        const existingInput = document.getElementById('thought-input');
+        if (existingInput) {
+            draftText = existingInput.value;
+        }
+
+        currentDir = dirKey;
+        const isRoot = dirKey === null;
+        
+        titleH1.innerHTML = isRoot ? "🧠 Thought Router" : `<span style="cursor:pointer" onclick="renderInputAndGrid()">🔙 ${dirKey} Sub-Menu</span>`;
+        
+        // Setup header buttons
+        document.getElementById('btn-settings').style.display = 'block';
+        document.getElementById('btn-log').style.display = 'block';
+
+        const activeNodes = isRoot ? categories : categories[dirKey].sub;
+
+        let html = `
+            <div class="input-container">
+                <textarea id="thought-input" placeholder="Enter a thought, link, or math expression...\n(Leave blank to just launch the app)">${draftText}</textarea>
+            </div>
+            <div class="grid">
+        `;
+
+        for (const [key, data] of Object.entries(activeNodes)) {
+            const isDirectory = data.isDir;
+            const hintText = isDirectory ? "Directory" : `Lauches: ${data.app}`;
+            
+            html += `
+                <button class="btn-icon" onclick="handleButtonClick('${key}', ${isDirectory})">
+                    <span class="emoji">${data.icon}</span>
+                    <span>${key}</span>
+                    <span class="app-hint">${hintText}</span>
+                </button>`;
+        }
+        html += '</div>';
+        contentDiv.innerHTML = html;
+        document.getElementById('thought-input').focus();
+    }
+
+    function renderSettings() {
+        titleH1.textContent = "⚙️ Configure Launchers";
+        document.getElementById('btn-settings').style.display = 'none';
+        document.getElementById('btn-log').innerHTML = "Done";
+        document.getElementById('btn-log').onclick = () => { saveConfig(); renderInputAndGrid(); };
+
+        let html = '<div class="settings-list"><p style="color:var(--text-muted); font-size:0.9rem;">Set the application or path that should trigger when you click a category.</p>';
+
+        for (const [key, data] of Object.entries(categories)) {
+            if (data.isDir) {
+                for (const [subKey, subData] of Object.entries(data.sub)) {
+                    html += buildSettingItem(key + " > " + subKey, subData.icon, subData.app, `categories['${key}'].sub['${subKey}'].app = this.value`);
+                }
+            } else {
+                html += buildSettingItem(key, data.icon, data.app, `categories['${key}'].app = this.value`);
+            }
+        }
+        html += '</div>';
+        contentDiv.innerHTML = html;
+    }
+
+    function buildSettingItem(label, icon, currentApp, updateScript) {
+        return `
+            <div class="setting-item">
+                <div class="setting-header">
+                    <span>${icon}</span>
+                    <span>${label}</span>
+                </div>
+                <div class="setting-input-group">
+                    <label>Target Application / Path:</label>
+                    <input type="text" value="${currentApp}" onchange="${updateScript}" placeholder="e.g. GarageBand, calc.exe, https://...">
+                </div>
+            </div>
+        `;
+    }
+
+    function renderLogView() {
+        titleH1.textContent = "📖 Activity Log";
+        document.getElementById('btn-log').style.display = 'none';
+        document.getElementById('btn-settings').innerHTML = "← Back";
+        document.getElementById('btn-settings').onclick = () => {
+            document.getElementById('btn-settings').innerHTML = "⚙️ Apps";
+            document.getElementById('btn-log').innerHTML = "📖 Log";
+            renderInputAndGrid();
+        };
+
+        const thoughts = getThoughts();
+        if (thoughts.length === 0) {
+            contentDiv.innerHTML = `<p style="text-align:center; color:var(--text-muted);">No thoughts captured yet.</p>`;
+            return;
+        }
+
+        let html = '<ul class="thought-list">';
+        thoughts.forEach(t => {
+            const date = new Date(t.timestamp).toLocaleString();
+            html += `
+                <li class="thought-item">
+                    <div class="thought-meta">
+                        <span>[${t.tag}] ⚡ ${t.app}</span>
+                        <span>${date}</span>
+                    </div>
+                    <div class="thought-text">${t.text}</div>
+                    <div class="thought-actions">
+                        <button class="btn-delete" onclick="deleteThought('${t.id}')">Delete</button>
+                    </div>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        contentDiv.innerHTML = html;
+    }
+
+    // --- Interaction Handlers ---
+    window.handleButtonClick = function(key, isDirectory) {
+        if (isDirectory) {
+            renderInputAndGrid(key);
+            return;
+        }
+
+        const inputField = document.getElementById('thought-input');
+        const text = inputField.value.trim();
+        
+        // Determine correct data node based on if we are in root or a sub-directory
+        let nodeData, tag;
+        if (currentDir === null) {
+            nodeData = categories[key];
+            tag = key;
+        } else {
+            nodeData = categories[currentDir].sub[key];
+            tag = `${currentDir} > ${key}`;
+        }
+
+        const appName = nodeData.app || "System Default";
+
+        if (text) {
+            // Flow 1: Text exists -> Save it, then launch
+            saveThought(text, tag, appName);
+            showToast(`💾 Saved & Launching: ${appName}`);
+            draftText = ""; // Clear draft after successful save
+        } else {
+            // Flow 2: Empty text -> Just launch
+            showToast(`🚀 Launching: ${appName}`);
+        }
+
+        // Reset UI to root
+        renderInputAndGrid(null); 
+    };
+
+    // --- Start App ---
+    renderInputAndGrid();
+</script>
+
+</body>
+</html>
