@@ -8,9 +8,11 @@ This opens a window with a text box that you can type in or choose one of the ic
 
 You have the option to type the text thought 'snippet' might be expressed in text or math equation or symbol then when you click a log is capture to classify it (future version will allow tagging or such)
 
-## Future design goals
 
-All text captured is stored local only and allows you to reset the log [delete] or save as you wish.
+All text captured (in this demo and hopefully final version) is stored locally only and allows you to reset the log [delete] or save as you wish.
+
+
+## Future design goals
 
 Feature request: allows markup output of said text for quick capture of links or the entire list of text at once.
 
