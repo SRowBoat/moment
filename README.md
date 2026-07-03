@@ -6,7 +6,9 @@ In mid thought it allows you to click on a [element icon or otherwise] of the gi
 
 This opens a window with a text box that you can type in or choose one of the icon buttons.
 
-You have the option to type the text thought 'snippet' might be expressed in text or math equation or symbol then when you click a log is capture to classify it.
+You have the option to type the text thought 'snippet' might be expressed in text or math equation or symbol then when you click a log is capture to classify it (future version will allow tagging or such)
+
+## Future design goals
 
 All text captured is stored local only and allows you to reset the log [delete] or save as you wish.
 
